@@ -32,7 +32,6 @@ jobs:
 
         cmake -S . -B build -G Ninja \
           -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-          -DENABLE_SCRIPTING=$enable_scripting \
           -DLAF_BACKEND=$laf_backend \
           -DSKIA_DIR=$(realpath skia) \
           -DSKIA_LIBRARY_DIR=$(realpath skia/out/Release-$skia_arch) \
