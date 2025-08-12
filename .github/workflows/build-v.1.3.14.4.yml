@@ -1,0 +1,52 @@
+name: build-1.3.14.4
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Aseprite v.1.3.14.4
+      uses: actions/checkout@v4
+      with:
+        ref: 'v1.3.14.4'
+        submodules: 'recursive'
+    - name: Install Skia
+      shell: bash
+      run: |
+        this_dir=$(cygpath "${{ github.workspace }}")
+        skia_url=$(source $this_dir/laf/misc/skia-url.sh | xargs)
+        skia_file=$(basename $skia_url)
+        curl --ssl-revoke-best-effort -L -o "$skia_file" "$skia_url"
+        unzip "$skia_file" -d skia
+    - uses: aseprite/get-ninja@main
+    - uses: ilammy/msvc-dev-cmd@v1
+    - name: Generating Makefiles
+      shell: bash
+      run: |
+        export enable_ccache=off
+        export laf_backend=skia
+        export enable_scripting=on
+        export skia_arch=x64
+
+        cmake -S . -B build -G Ninja \
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+          -DENABLE_SCRIPTING=$enable_scripting \
+          -DLAF_BACKEND=$laf_backend \
+          -DSKIA_DIR=$(realpath skia) \
+          -DSKIA_LIBRARY_DIR=$(realpath skia/out/Release-$skia_arch) \
+          -DSKIA_LIBRARY=$(realpath skia/out/Release-$skia_arch/skia.lib)
+    - name: Compiling
+      shell: bash
+      run: |
+        cd build && ninja
+    - name: Package artifact
+      run: |
+        7z a -r aseprite-v.1.3.14.4.zip .\build\bin\*
+      shell: pwsh
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: aseprite-v.1.3.14.4
+        path: aseprite-v.1.3.14.4.zip
